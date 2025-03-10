@@ -1,0 +1,163 @@
+#data
+data <- read.csv("C:/cancer1.csv", sep = ";")
+data
+
+#melakukan melt data agar dapat digunakan untuk boxplot
+library(reshape2)
+data_melt<- melt(data, id.vars = "diagnosis")
+
+#boxplot statistik deskriptif
+library(ggplot2)
+ggplot(data_melt, aes(x = diagnosis, y = value, fill = 
+diagnosis)) + geom_boxplot(outlier.colour = "red", 
+outlier.shape = 16, outlier.size = 2) + 
+facet_wrap(~variable, scales = "free") +  theme_minimal() +
+  labs(
+    title = "Boxplot Statistik Deskriptif",
+    x = "Diagnosis (Target)",
+    y = "Nilai Variabel Prediktor"
+  ) +
+  scale_fill_manual(values = c("skyblue", "pink")) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+#standarisasi data
+data_scaled <- as.data.frame(scale(data[,-c(1,2)]))  
+data_scaled$diagnosis <- data$diagnosis  
+data_scaled$diagnosis <- factor(data_scaled$diagnosis, levels = c("B", "M"))
+#variabel respon adalah faktor biner
+
+#melakukan melt data agar dapat digunakan untuk boxplot
+(setelah standarisasi)
+data_melt1 <- melt(data_scaled, id.vars = "diagnosis")
+
+#boxplot standarisasi data
+library(ggplot2)
+ggplot(data_melt1, aes(x = diagnosis, y = value, fill = 
+diagnosis)) + geom_boxplot(outlier.colour = "red", 
+outlier.shape = 16, outlier.size = 2) + 
+facet_wrap(~variable, scales = "free") +  theme_minimal() +
+  labs(
+    title = "Boxplot Statistik Deskriptif",
+    x = "Diagnosis (Target)",
+    y = "Nilai Variabel Prediktor"
+  ) +
+  scale_fill_manual(values = c("skyblue", "pink")) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+#Membagi data menjadi data latih dan data uji
+set.seed(123)
+training.samples <- createDataPartition(data_scaled$diagnosis, 
+p = 0.8, list = FALSE)
+training.samples
+train.data <- data_scaled[training.samples,-1]
+train.data
+test.data <- data_scaled[-training.samples,-1]
+test.data
+
+#variabel prediktor kategorikal kode dummy
+x.train <- model.matrix(diagnosis~., train.data)
+y.train <- ifelse(train.data$diagnosis=="M",1,0)
+
+x.test <-model.matrix(diagnosis ~ ., test.data)
+y.test <- ifelse(test.data$diagnosis == "M", 1, 0)
+
+#multikolinieritas
+model_vif <- lm(y.train ~ ., data = as.data.frame(x.train))
+vif(model_vif)
+
+==================Regresi Logistik Biner================
+
+#regresi logistik biner
+set.seed(123)
+data_scaled$diagnosis=as.factor(data_scaled$diagnosis)
+logit.model <- glm(diagnosis~ ., data = train.data, 
+family = binomial)
+# Ringkasan model
+summary(logit.model)
+coef(logit.model)
+
+# Prediksi pada data latih
+train.probabilities.logit <- predict(logit.model, 
+train.data, type = "response")
+train.predicted.classes.logit <- 
+ifelse(train.probabilities.logit > 0.5, 1, 0)
+
+# Akurasi pada data latih
+train.accuracy.logit <- mean(train.predicted.classes == y.train)
+
+# Prediksi pada data uji
+test.probabilities.logit <- predict(logit.model, 
+test.data, type = "response")
+test.predicted.classes.logit <- 
+ifelse(test.probabilities.logit > 0.5, 1, 0)
+
+# Akurasi pada data uji
+test.accuracy.logit <- mean(test.predicted.classes.logit 
+== y.test)
+
+===========================LASSO===========================
+
+#LASSO dengan cross validation
+set.seed(123)
+cv.lasso <- cv.glmnet(x.train, y.train, alpha = 1, 
+family = "binomial",nfold=10)
+cv.lasso
+summary(cv.lasso)
+round(cv.lasso$lambda,6) #lambda
+round(cv.lasso$cvm,6) #binomial deviance
+round(cv.lasso$cvsd,6) #SE
+
+# Plot kurva cross-validation 
+plot(cv.lasso, main="cross validation curve")
+
+#lambda terbaik
+lambda (penalty)
+best_lambda <- cv.lasso$lambda.min
+best_lambda
+
+#model akhir dengan lambda terbaik
+set.seed(123)
+lasso.model <- glmnet(x.train, y.train, alpha = 1, 
+family = "binomial", lambda = best_lambda)
+lasso.model
+ 
+#koefisien regresi
+c=coef(lasso.model)
+c
+
+#prediksi pada data latih
+set.seed(123)
+train.probabilities <- predict(lasso.model, newx = x.train, 
+type = "response")
+train.predicted <- ifelse(train.probabilities > 0.5,1,0)
+
+#akurasi pada data latih
+train.accuracy <- mean(train.predicted == y.train)
+train.accuracy
+
+#prediksi pada data uji
+test.probabilities <- predict(lasso.model, newx = x.test, 
+type = "response")
+test.probabilities
+test.predicted <- ifelse(test.probabilities > 0.5, 1, 0)
+
+#akurasi pada data uji
+test.accuracy <- mean(test.predicted == y.test)
+test.accuracy
+
+#tabel klasifikasi
+tabel <- table(Predicted = test.predicted, Actual = y.test)
+tabel
+
+#roc auc
+roc_curve <- roc(y.test, as.vector(test.probabilities))
+auc_value <- auc(roc_curve)
+
+#plot roc curve
+plot(roc_curve, col = "blue", lwd = 2, main = "ROC Curve")
+abline(a = 0, b = 1, col = "red", lty = 2)  # Garis acak
+legend("bottomright", legend = paste("AUC =", 
+round(auc_value, 2)), bty = "n")
+text(0.6, 0.4, paste("AUC =", round(auc_value, 3)), col = 
+"blue", cex = 1.2)
