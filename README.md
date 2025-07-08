@@ -17,7 +17,7 @@ Overfitting merupakan masalah umum dalam model regresi logistik ketika jumlah va
 - Hasil menunjukkan peningkatan akurasi dan reduksi kompleksitas model dibandingkan regresi logistik tanpa penalti
 
 ## 📁 Isi Repository
-- `LASSO`: Script utama analisis
+- `Regresi terpenalti`: Script utama analisis
 - `README.md`: Deskripsi proyek
 
 ## 🔍 Catatan
