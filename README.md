@@ -1,4 +1,4 @@
-#Implementasi Regresi Logistik Biner dengan Regularisasi LASSO dalam menangani Masalah Overfitting
+##Implementasi Regresi Logistik Biner dengan Regularisasi LASSO dalam menangani Masalah Overfitting
 
 ## 📌 Latar Belakang
 Overfitting merupakan masalah umum dalam model regresi logistik ketika jumlah variabel prediktor cukup banyak. Oleh karena itu, regularisasi LASSO digunakan untuk mengatasi overfitting sekaligus melakukan seleksi variabel pada data Breast Cancer Wisconsin.
